@@ -2,8 +2,11 @@ from datetime import datetime
 from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException, status
 from pydantic import UUID4
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy.orm import selectinload
 
-from workout_api.atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate
+from workout_api.atleta.schemas import AtletaIn, AtletaOut, AtletaUpdate, AtletaListOut
 from workout_api.atleta.models import AtletaModel
 from workout_api.categorias.models import CategoriaModel
 from workout_api.centro_treinamento.models import CentroTreinamentoModel
@@ -85,19 +88,21 @@ async def query(
     db_session: DatabaseDependency,
     nome: Optional[str] = None,
     cpf: Optional[str] = None
-) -> List[AtletaOut]:
+) -> Page[AtletaOut]:
     
-    query = select(AtletaModel)
+query = select(AtletaModel).options(
+        selectinload(AtletaModel.categoria),
+        selectinload(AtletaModel.centro_treinamento)
+    )
 
     if nome:
         query = query.filter_by(nome=nome)
-
-    if cpf:
-        query = query.f ilter_by(cpf=cpf)
-
-    atletas: List[AtletaModel] = (await db_session.execute(query)).scalars().all()
     
-    return [AtletaOut.model_validate(atleta) for atleta in atletas]
+    if cpf:
+        query = query.filter_by(cpf=cpf)
+
+  
+    return await paginate(db_session, query)
 
 @router.get(
     '/{id}', 
