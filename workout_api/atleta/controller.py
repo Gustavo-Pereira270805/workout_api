@@ -10,6 +10,7 @@ from workout_api.centro_treinamento.models import CentroTreinamentoModel
 
 from workout_api.contrib.dependencies import DatabaseDependency
 from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 
